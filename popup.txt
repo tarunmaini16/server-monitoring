@@ -1,0 +1,74 @@
+ 	
+function all_check(){
+	 
+var inputs = document.querySelectorAll("input[type='checkbox']");	
+
+var operation = true;
+if (inputs[0].checked) operation = false;
+
+	for(var i = 0; i < inputs.length; i++) 
+		{
+			 inputs[i].checked = operation; 
+		}
+ 
+}
+
+ 
+function checkbox_check() {
+	
+ 
+var apps_list = '';	
+
+ 	
+var inputs = document.querySelectorAll("input[type='checkbox']");
+	
+ 
+for(var i = 0; i < inputs.length; i++) {
+ 
+    if (inputs[i].checked) apps_list += inputs[i].id + ',';   
+}
+
+ 
+if (apps_list != '') apps_list = apps_list.substring(0, apps_list.length - 1);
+
+ 
+localStorage["server_status_app_list"] = apps_list;
+
+ 
+var status_elem = document.getElementById("status");
+ 
+status_elem.innerHTML = '<div class="saved">Setting saved</div>';	
+
+ 
+setTimeout(function(){status_elem.innerHTML = ''; }, 2000);
+}
+
+
+ 
+document.addEventListener('DOMContentLoaded', function () {
+	
+	 
+	var stored_val = localStorage["server_status_app_list"];
+	
+ 
+	if (stored_val != undefined && stored_val != '') 
+		{
+		 
+		var stored_ar = stored_val.split(",");
+		
+	 
+		for(var i = 0; i < stored_ar.length; i++) {
+		 
+			console.log(stored_ar[i]);
+			 
+			if  (stored_ar[i] != '') document.getElementById(stored_ar[i]).checked = true;
+			}	
+			
+		}
+
+	 
+	document.getElementById("button_save").addEventListener("click", checkbox_check);
+	
+	document.getElementById("button_check").addEventListener("click", all_check);
+		
+});

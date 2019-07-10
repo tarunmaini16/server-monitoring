@@ -1,0 +1,32 @@
+{
+  "manifest_version": 2,
+
+  "name": "Test Server Monitoring",
+  "description": "Naukri's First Chrome Extension to monitor the See-Saw behaviour of Test Servers",
+  "version": "1.1",
+
+  "background": { 
+	  "scripts": 	[
+	  "status.js"
+	] 
+  },
+ 
+ "browser_action": {
+     "default_icon": "icon_n.png",
+     "default_popup": "popup.html"
+  },
+  
+ "permissions": [
+	"storage",
+	"notifications",
+	"http://172.16.2.174/"
+    ],
+  
+  "web_accessible_resources": [
+    "icon.png"
+  ],
+  "icons": { 
+               "128":"icon_n.png"
+        }
+}
+

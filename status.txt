@@ -1,0 +1,349 @@
+ 
+var check_sec = 6;
+
+ 
+var prev_state1 = [];
+
+var prev_state2 = []; 
+var prev_state3 = [];
+
+ 
+var url1 = 'http://172.16.2.174/sync/showSyncReport.php?report=monitoring';
+
+var url2 = 'http://172.16.2.174/sync/showSyncReport.php?report=sync';
+
+var url3 = 'http://172.16.2.174/sync/showSyncReport.php?report=disk';
+
+ 
+var app_list = '';
+	
+ 
+var old_app_list = '';
+	
+
+ 
+function diag(){
+ if (chrome.runtime.lastError) {
+    console.error(chrome.runtime.lastError.message);
+  }
+}
+
+ 
+function difference(a1, a2) {
+ 
+  var result = [];
+
+  for (var i = 0; i < a1.length; i++) {
+ 	  
+    if (a2.indexOf(a1[i]) === -1) {
+
+     result.push(a1[i]);
+    }
+  }
+  return result;
+}
+
+ 
+function getNodeIndex(node) {
+    var index = 0;
+ 
+    while ( (node = node.previousSibling) ) {
+        if (node.nodeType != 3 || !/^\s*$/.test(node.data)) {
+            index++;
+        }
+    }
+    return index;
+}
+
+ 
+function check_status() {
+	 
+	
+	var stored_val = localStorage["server_status_app_list"];
+		
+	 
+	if (stored_val != undefined && stored_val != '') 
+		{
+		 
+		app_list = stored_val;		
+		}
+		
+  
+	if (old_app_list != app_list)
+		{
+		 
+		prev_state1 = [];	
+		prev_state2 = [];
+		 
+		old_app_list = app_list;			
+		}
+		
+		
+	
+	 
+	var server_status1 =  '';
+	var server_status2 =  '';
+	var server_status3 =  '';
+	
+	 
+	var current_state1 =  new Array();
+	var current_state2 =  new Array();
+    var current_state3 =  new Array();
+	 
+	var time = new Date();
+	 
+	var time_24 = ("0" + time.getHours()).slice(-2)   + ":" + ("0" + time.getMinutes()).slice(-2) + ":" + 
+			    ("0" + time.getSeconds()).slice(-2);
+		
+	 
+	var mute_down = '';
+		
+		
+	 
+	var xhr = new XMLHttpRequest();
+	
+ 
+	xhr.open('GET', url1 + '&_=' + new Date().getTime(), true);
+	xhr.responseType = 'document';
+	
+	 
+	xhr.onload = function(e) {
+				 
+		var a = this.response.getElementsByTagName('a');
+		
+		 
+		for (i = 0;  i < a.length; i++) { 
+			var elem_class = a[i].getAttribute("class");
+			if (elem_class == null || elem_class.indexOf("red") ==-1) continue;
+						 
+			var elem_id = a[i].nextSibling.getElementsByTagName('h2')[0].innerHTML;
+						
+			var app_id = ''; 
+			var app_pos = elem_id.indexOf(' -'); 		
+			if (app_pos != -1) app_id = elem_id.substring(0, app_pos); 
+			 
+			if (app_list == '' || app_id == '' || app_list.indexOf(app_id) == -1) continue;
+								 
+			current_state1.push(elem_id);
+			}
+			 
+		var server1_up = difference(prev_state1, current_state1); 
+		var server1_down = difference(current_state1, prev_state1);
+					  
+		if (server1_up.length > 0 ||  server1_down.length > 0) {
+			 
+			for (i = 0; i <  server1_down.length; i++) {
+				
+				var s2d_len = server1_down[i].length;
+				
+				if (i == 0 || server1_down[i-1].indexOf(server1_down[i].substring(0, s2d_len - 1)) == -1)
+					{
+					server_status1 += server1_down[i] + " is Down\r\n"; 	
+					}
+				else	
+					{
+					server_status1 = server_status1.substring(0, server_status1.length - 10) 
+						+ " / " + server1_down[i].substring(s2d_len - 1)  + " is Down\r\n"; 				
+					}
+						
+				}
+				
+							 		
+			for (i = 0; i <  server1_up.length; i++) {
+				server_status1 += server1_up[i] + " is Up\r\n"; 	
+				}
+						
+			 
+			var opt = {
+			  type: "basic",
+			  title: "Apps Status:          " + time_24,
+			  message: server_status1,
+			  requireInteraction:true,
+			  iconUrl: "icon.png"	  
+			} 
+			prev_state1 = current_state1;
+			 
+			chrome.notifications.create('Apps Status', opt, diag);	
+			
+		}
+			
+		
+ 
+			
+		setTimeout(check_status, check_sec * 1000);
+	
+	};
+	 
+	xhr.send();	
+	
+	 
+	var xhr2 = new XMLHttpRequest();
+	 
+	xhr2.open('GET', url2 + '&_=' + new Date().getTime(), true);
+	xhr2.responseType = 'document';
+	 
+	xhr2.onload = function(e) {
+		
+
+		var a = this.response.getElementsByTagName('a');
+		
+		 
+		for (i = 0;  i < a.length; i++) {		
+ 
+			var elem_class = a[i].getAttribute("class");
+			
+			if (elem_class == null || elem_class.indexOf("red") ==-1) continue;
+			
+			 
+			var elem_h2 = a[i].parentNode.getElementsByTagName('h2')[0];
+			 
+			if (elem_h2 == undefined) 
+				{			  	
+				var found_server_id = getNodeIndex(a[i].parentNode); 	
+				if (found_server_id == 3) found_server_id = 4;	
+					 
+				var elem_id2 = a[i].parentNode.parentNode.getElementsByTagName('td')[0].innerHTML 
+					+ ' - ' + 'Test' + found_server_id;
+				}
+			else 
+				{ 
+				var elem_id2 = elem_h2.innerHTML;
+				}
+				
+			var app_id2 = '';
+			var app_pos2 = elem_id2.indexOf(' -');
+						
+			if (app_pos2 != -1) app_id2 = elem_id2.substring(0, app_pos2); 
+			
+			if (app_list == '' || app_id2 == '' || app_list.indexOf(app_id2) == -1) continue;
+ 
+			if (a[i].innerHTML.indexOf('Info Not available') > -1) mute_down += elem_id2 + ','; 	
+				
+			 
+			current_state2.push(elem_id2);
+			}
+		
+		var server2_up = difference(prev_state2, current_state2);
+		var server2_down = difference(current_state2, prev_state2);
+					
+					
+		if (server2_up.length > 0 ||  server2_down.length > 0) {
+			
+			for (i = 0; i <  server2_down.length; i++) {
+				 		
+				if (mute_down.indexOf(server2_down[i] + ',') > -1) continue;
+			
+				var s2d_len = server2_down[i].length;
+				
+				if (i == 0 || server2_down[i-1].indexOf(server2_down[i].substring(0, s2d_len - 1)) == -1)
+					{
+					server_status2 += server2_down[i] + " not in Sync\r\n"; 	
+					}
+				else	
+					{
+					server_status2 = server_status2.substring(0, server_status2.length - 14) 
+						+ " / " + server2_down[i].substring(s2d_len - 1)  + " not in Sync\r\n"; 				
+					}
+						
+				}
+				
+				
+			for (i = 0; i <  server2_up.length; i++) {
+				server_status2 += server2_up[i] + " is in Sync\r\n"; 	
+				}
+						
+			 
+			var opt2 = {
+			  type: "basic",
+			  title: "Sync Status:          " + time_24,
+			  message: server_status2,
+			  requireInteraction:true,
+			  iconUrl: "icon.png"
+			} 
+			prev_state2 = current_state2;
+			 
+			chrome.notifications.create('Sync Status', opt2, diag);	
+		}
+		
+	};
+	 
+	xhr2.send();	
+	 
+	var xhr3 = new XMLHttpRequest();
+	
+	 
+	xhr3.open('GET', url3 + '&_=' + new Date().getTime(), true);
+	xhr3.responseType = 'document';
+	
+	 
+	xhr3.onload = function(e) {
+		
+		var detail_list = [];
+	
+		 
+		var a = this.response.getElementsByTagName('a');
+		
+		
+	 
+		for (i = 0;  i < a.length; i++) {
+			 
+			var elem_class = a[i].getAttribute("class");
+			if (elem_class == null || elem_class.indexOf("red") == -1) continue;
+				
+			var td_list = a[i].parentNode.parentNode.getElementsByTagName('td');
+			var server_id = td_list[0].innerText.split(' '); 
+			var elem_id = server_id[0];
+
+			detail_list[elem_id] = server_id[0].replace('NaukriSet','Set').replace('Test',' T')
+				+ ' ' + a[i].innerText + ' ' + td_list[2].innerText;
+								
+		 
+			current_state3.push(elem_id);
+			}
+			
+		 
+		var server3_up = difference(prev_state3, current_state3);
+	 
+		var server3_down = difference(current_state3, prev_state3);
+					
+	 
+		if (server3_up.length > 0 ||  server3_down.length > 0) {
+			
+			 
+			for (i = 0; i <  server3_down.length; i++) {
+				server_status3 += detail_list[server3_down[i]] + "\r\n"; 	
+				}
+				
+							
+			 			
+			for (i = 0; i <  server3_up.length; i++) {
+				server_status3 += detail_list[server3_down[i]] + " is OK\r\n"; 	
+				}
+						
+			
+			 
+			var opt = {
+			  type: "basic",
+			  title: "Disk Usage:          " + time_24,
+			  message: server_status3,
+			  requireInteraction:true,
+			  iconUrl: "icon.png"	  
+			}
+			 
+			prev_state3 = current_state3;
+			
+		 
+			chrome.notifications.create('Usage Status', opt, diag);	
+			
+		}
+			
+	};
+	
+	 
+	xhr3.send();	
+
+ 
+}
+
+ 
+setTimeout(check_status, 2000);
